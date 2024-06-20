@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class ClientController extends Controller
 {
@@ -29,15 +30,42 @@ class ClientController extends Controller
         return response()->json($data, 200);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        //
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:110'],
+            'lastname' => ['required', 'string', 'max:110']
+        ]);
+
+        if ($validator->fails()) {
+            $data = [
+                'status' => 500,
+                'message' => 'Error en la validación',
+                'errors' => $validator->errors()
+            ];
+            return response()->json($data, 500);
+        }
+
+        $client = new Client();
+        $client->name = $request->name;
+        $client->lastname = $request->lastname;
+        $client->save();
+
+        if (!$client) {
+            $data = [
+                'status' => 400,
+                'message' => 'Error al crear el cliente'
+            ];
+            return response()->json($data, 400);
+        }
+
+        $data = [
+            'status' => 201,
+            'message' => 'Cliente creado con éxito',
+            'data' => $client
+        ];
+
+        return response()->json($data, 201);
     }
 
 
@@ -72,26 +100,60 @@ class ClientController extends Controller
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Client  $client
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Client $client)
+
+    public function update(Request $request, $id)
     {
-        //
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:110'],
+            'lastname' => ['required', 'string', 'max:110']
+        ]);
+
+        if ($validator->fails()) {
+            $data = [
+                'status' => 500,
+                'message' => 'Error en la validación',
+                'errors' => $validator->errors()
+            ];
+            return response()->json($data, 500);
+        }
+
+        $client = Client::find($id);
+
+        if (!$client) {
+            $data = [
+                'status' => 404,
+                'message' => 'No se encontró al cliente'
+            ];
+            return response()->json($data, 404);
+        }
+
+        $client->name = $request->name;
+        $client->lastname = $request->lastname;
+        $client->update();
+
+        $data = [
+            'status' => 200,
+            'message' => 'Cliente actualizado con éxito',
+            'data' => $client
+        ];
+
+        return response()->json($data, 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Client  $client
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Client $client)
+    public function destroy($id)
     {
-        //
+        $client = Client::find($id);
+
+        if (!$client) {
+            $data = [
+                'status' => 404,
+                'message' => 'No se encontró al cliente'
+            ];
+            return response()->json($data, 404);
+        }
+
+        $client->delete();
+
+        return response()->noContent();
     }
 }
